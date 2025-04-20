@@ -22,8 +22,9 @@ engine = create_engine(
     connect_args={
         "sslmode": "require",
         "hostaddr": "192.168.29.1"   # Hard-coded IPv4 addres
-    }
+    )
 meta = MetaData()
+meta.create_all(engine)
 
 # --- Users Table ---
 users = Table(
