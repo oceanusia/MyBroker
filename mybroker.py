@@ -1,4 +1,5 @@
 import streamlit as st
+import db
 
 # Importing Page Functions
 from app_functions.verify_email import verify_email
