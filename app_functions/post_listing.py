@@ -1,9 +1,11 @@
 import streamlit as st
 import time
+from db import create_listing
+
 
 def post_listing():
     st.title("Post Your Lease")
-    st.markdown("*Note: All fields marked with an asterisk (\*) are required.*")
+    st.markdown("*Note: All fields marked with an asterisk (*) are required.*")
 
     # Essential Information
     address = st.text_input("Street Address*")
@@ -27,7 +29,9 @@ def post_listing():
     available_from = st.date_input("Available From*")
     lease_length = st.number_input("Lease Length (Months)", min_value=1, max_value=24)
     type_of_lease = st.selectbox("Type of Lease*", options=["Sublet", "Full Lease"])
-    contact_email = st.text_input("Your Email*", value=st.session_state.get('verified_email', ''))
+    contact_email = st.text_input(
+        "Your Email*", value=st.session_state.get('verified_email', '')
+    )
     contact_phone = st.text_input("Your Phone Number (Optional)")
 
     # Amenities Information
@@ -53,11 +57,9 @@ def post_listing():
         accept_multiple_files=True,
     )
 
-    additional_notes = st.text_area("Additional Notes (Optional)", height = 100)
-
+    additional_notes = st.text_area("Additional Notes (Optional)", height=100)
 
     # Form Submission
-    from db import create_listing
     if st.button("Submit Listing"):
         if not address:
             st.error("Street Address is required.")
@@ -78,27 +80,30 @@ def post_listing():
         elif not contact_email:
             st.error("Contact Email is required.")
         else:
-            # → INSERT into the database instead of session_state
-            listing_id = create_listing(
-                address=address,
-                city=city,
-                state=state,
-                zip_code=zip_code,
-                floor=floor,
-                unit=unit,
-                bedrooms=beds,
-                bathrooms=baths,
-                rent_per_bedroom=rent_per_bedroom,
-                available_from=str(available_from),
-                lease_length=lease_length,
-                type_of_lease=type_of_lease,
-                contact_email=contact_email,
-                contact_phone=contact_phone,
-                amenities=amenities,
-                photos=[file.name for file in photos] if photos else [],
-                additional_notes=additional_notes
-            )
-            st.success("Listing posted successfully! Redirecting to My Listings…")
-            st.session_state['current_page'] = "my_listings"
-            time.sleep(2)
-            st.rerun()
+            try:
+                # Insert into Supabase and get its new ID
+                listing_id = create_listing(
+                    address=address,
+                    city=city,
+                    state=state,
+                    zip_code=zip_code,
+                    floor=floor,
+                    unit=unit,
+                    bedrooms=beds,
+                    bathrooms=baths,
+                    rent_per_bedroom=rent_per_bedroom,
+                    available_from=str(available_from),
+                    lease_length=lease_length,
+                    type_of_lease=type_of_lease,
+                    contact_email=contact_email,
+                    contact_phone=contact_phone,
+                    amenities=amenities,
+                    photos=[file.name for file in photos] if photos else [],
+                    additional_notes=additional_notes,
+                )
+                st.success("Listing posted successfully! Redirecting to My Listings…")
+                time.sleep(2)
+                st.session_state['current_page'] = "my_listings"
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error posting listing: {e}")
