@@ -19,8 +19,10 @@ from sqlalchemy import create_engine, MetaData
 
 engine = create_engine(
     st.secrets["DATABASE_URL"],
-    connect_args={"sslmode": "require"}    # ← ensure SSL for Supabase/Postgres
-)
+    connect_args={
+        "sslmode": "require",
+        "hostaddr": "192.168.29.1"   # Hard-coded IPv4 addres
+    }
 meta = MetaData()
 
 # --- Users Table ---
