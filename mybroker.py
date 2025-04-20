@@ -52,6 +52,7 @@ if 'current_page' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
+# Remove this once you’ve switched all pages to use the SQLAlchemy users table
 if 'users' not in st.session_state:
     st.session_state['users'] = {}
 
