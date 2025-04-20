@@ -15,8 +15,16 @@ def create_user(email: str, password: str):
     }).execute()
 
 def get_user(email: str):
-    resp = supabase.table("users").select("*").eq("email", email).single().execute()
-    return resp.data  # None if not found
+    resp = (
+        supabase
+        .table("users")
+        .select("*")
+        .eq("email", email)
+        .maybe_single()    # <— was .single()
+        .execute()
+    )
+    return resp.data  # will be None if no user
+
 
 def authenticate_user(email: str, password: str) -> bool:
     user = get_user(email)
