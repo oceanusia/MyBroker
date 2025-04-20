@@ -21,7 +21,7 @@ engine = create_engine(
     st.secrets["DATABASE_URL"],
     connect_args={
         "sslmode": "require",
-        "hostaddr": "192.168.29.1"}   # Hard-coded IPv4 addres
+        "hostaddr": st.secrets["PG_HOSTADDR"]}   # Hard-coded IPv4 addres
     )
 meta = MetaData()
 meta.create_all(engine)
