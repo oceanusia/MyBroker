@@ -15,15 +15,24 @@ def create_user(email: str, password: str):
     }).execute()
 
 def get_user(email: str):
+    """
+    Fetch a user row as a dict, or None if not found.
+    Works with both ApiResponse.data and dict['data'] return types.
+    """
     resp = (
         supabase
         .table("users")
         .select("*")
         .eq("email", email)
-        .maybe_single()    # <— was .single()
+        .maybe_single()    # avoids error when 0 rows
         .execute()
     )
-    return resp.data  # will be None if no user
+    # If resp is a dict (supabase-py v2+), pull 'data' key
+    if isinstance(resp, dict):
+        return resp.get("data")
+    # Otherwise, assume it's an ApiResponse with a .data attribute
+    return getattr(resp, "data", None)
+
 
 
 def authenticate_user(email: str, password: str) -> bool:
