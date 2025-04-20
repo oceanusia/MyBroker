@@ -57,6 +57,7 @@ def post_listing():
 
 
     # Form Submission
+    from db import create_listing
     if st.button("Submit Listing"):
         if not address:
             st.error("Street Address is required.")
@@ -77,30 +78,27 @@ def post_listing():
         elif not contact_email:
             st.error("Contact Email is required.")
         else:
-            listing = {
-                "Address": address,
-                "City": city,
-                "State": state,
-                "Unit": unit,
-                "Floor:": floor,
-                "Zip Code": zip_code,
-                "Bedrooms": beds,
-                "Bathrooms": baths,
-                "Rent Per Bedroom": rent_per_bedroom,
-                "Available From": str(available_from),
-                "Lease Length": lease_length,
-                "Type of Lease": type_of_lease,
-                "Contact Email": contact_email,
-                "Contact Phone": contact_phone,
-                "Amenities": amenities,
-                "Photos": photos if photos else [],
-                "Additional Notes": additional_notes,
-            }
-            if 'listings' not in st.session_state:
-                st.session_state['listings'] = []
-            st.session_state['listings'].append(listing)
-
-            st.success("Listing posted successfully! Redirecting to My Listings...")
+            # → INSERT into the database instead of session_state
+            listing_id = create_listing(
+                address=address,
+                city=city,
+                state=state,
+                zip_code=zip_code,
+                floor=floor,
+                unit=unit,
+                bedrooms=beds,
+                bathrooms=baths,
+                rent_per_bedroom=rent_per_bedroom,
+                available_from=str(available_from),
+                lease_length=lease_length,
+                type_of_lease=type_of_lease,
+                contact_email=contact_email,
+                contact_phone=contact_phone,
+                amenities=amenities,
+                photos=[file.name for file in photos] if photos else [],
+                additional_notes=additional_notes
+            )
+            st.success("Listing posted successfully! Redirecting to My Listings…")
             st.session_state['current_page'] = "my_listings"
             time.sleep(2)
             st.rerun()
