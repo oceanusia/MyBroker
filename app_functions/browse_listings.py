@@ -1,16 +1,15 @@
 import streamlit as st
+from db import get_user, save_listing_for_user, unsave_listing_for_user
 
 def browse_listings():
     st.title("Available Listings")
 
     listings = st.session_state['listings']
-    email = st.session_state['verified_email']  # Get the logged-in user's email
-    
-    # Initalize user's Saved Listings list
-    user_data = st.session_state['users'][email]
-    if 'saved_listings' not in user_data:
-        user_data['saved_listings'] = []
-    user_saved_listings = user_data['saved_listings']
+    email = st.session_state['verified_email']
+
+    # Fetch user and their saved listings from the database
+    user = get_user(email)
+    user_saved_listings = user.get("saved_listings", [])
 
     if not listings:
         st.info("No listings yet!")
@@ -46,16 +45,14 @@ def browse_listings():
                 else:
                     st.write("No photos uploaded.")
 
-            # Add a Save / Unsave button by Address instead of index
-                addr = listing['Address']
-                if addr in user_saved_listings:
-                    if st.button("💔 Unsave Listing", key=f"unsave_{i}"):
-                        user_saved_listings.remove(addr)
-                        st.success("Listing removed from Saved!")
-                else:
-                    if st.button("💾 Save Listing", key=f"save_{i}"):
-                        user_saved_listings.append(addr)
-                        st.success("Listing added to Saved!")
-
-                # Persist back to session_state
-                st.session_state['users'][email]['saved_listings'] = user_saved_listings
+            # Save / Unsave using database functions (listing index as ID)
+            if i in user_saved_listings:
+                if st.button("💔 Unsave Listing", key=f"unsave_{i}"):
+                    unsave_listing_for_user(email, i)
+                    st.success("Listing removed from Saved!")
+                    st.rerun()
+            else:
+                if st.button("💾 Save Listing", key=f"save_{i}"):
+                    save_listing_for_user(email, i)
+                    st.success("Listing added to Saved!")
+                    st.rerun()
