@@ -14,10 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.sql import select
 
 # --- Engine & Metadata ---
-engine = create_engine(
-    "sqlite:///mybroker.db",
-    connect_args={"check_same_thread": False}
-)
+import streamlit as st
+engine = create_engine(st.secrets["DATABASE_URL"])
 meta = MetaData()
 
 # --- Users Table ---
