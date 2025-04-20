@@ -18,8 +18,7 @@ import streamlit as st
 from sqlalchemy import create_engine, MetaData
 
 engine = create_engine(
-    st.secrets["DATABASE_URL"],
-    connect_args={"sslmode": "require"}   
+    st.secrets["DATABASE_URL"]
 )
 meta = MetaData()
 meta.create_all(engine)
