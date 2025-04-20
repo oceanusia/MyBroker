@@ -7,7 +7,9 @@ from sqlalchemy import (
     Integer,
     String,
     Float,
-    Text
+    Text,
+    exc,
+    text
 )
 from sqlalchemy.sql import select
 
@@ -23,7 +25,7 @@ users = Table(
     "users", meta,
     Column("email", String, primary_key=True),
     Column("password", String, nullable=False),
-    Column("saved_listings", Text, nullable=False, default="[]"),
+    Column("saved_listings", Text, nullable=False, server_default=text('[]')),
 )
 
 # --- Listings Table ---
@@ -60,8 +62,11 @@ def create_user(email, password):
         password=password,
         saved_listings=json.dumps([])
     )
-    with engine.begin() as conn:
-        conn.execute(ins)
+    try:
+        with engine.begin() as conn:
+            conn.execute(ins)
+    except exc.IntegrityError:
+        raise ValueError(f"User with email '{email}' already exists.")
 
 
 def get_user(email):
@@ -71,7 +76,7 @@ def get_user(email):
         row = conn.execute(sel).fetchone()
     if row:
         data = dict(row)
-        data["saved_listings"] = json.loads(data["saved_listings"])
+        data["saved_listings"] = json.loads(data.get("saved_listings") or "[]")
         return data
     return None
 
@@ -79,13 +84,13 @@ def get_user(email):
 def authenticate_user(email, password):
     """Return True if the password matches for the given email."""
     user = get_user(email)
-    return user is not None and user["password"] == password
+    return bool(user and user["password"] == password)
 
 
 def save_listing_for_user(email, listing_id):
     """Append a listing ID to the user’s saved_listings."""
     user = get_user(email)
-    if user is None:
+    if not user:
         return
     saved = user["saved_listings"]
     if listing_id not in saved:
@@ -100,7 +105,7 @@ def save_listing_for_user(email, listing_id):
 def unsave_listing_for_user(email, listing_id):
     """Remove a listing ID from the user’s saved_listings."""
     user = get_user(email)
-    if user is None:
+    if not user:
         return
     saved = user["saved_listings"]
     if listing_id in saved:
@@ -112,6 +117,44 @@ def unsave_listing_for_user(email, listing_id):
             conn.execute(upd)
 
 # --- Listing Helper Functions ---
+def create_listing(
+    address, city, state, zip_code, floor, unit,
+    bedrooms, bathrooms, rent_per_bedroom,
+    available_from, lease_length, type_of_lease,
+    contact_email, contact_phone,
+    amenities, photos, additional_notes
+):
+    """Insert a new listing and return its new ID."""
+    rent_json = json.dumps(rent_per_bedroom)
+    amenities_json = json.dumps(amenities)
+    photos_json = json.dumps(photos)
+
+    values = {
+        "Address": address,
+        "City": city,
+        "State": state,
+        "Zip Code": zip_code,
+        "Unit": unit,
+        "Floor": floor,
+        "Bedrooms": bedrooms,
+        "Bathrooms": bathrooms,
+        "Rent Per Bedroom": rent_json,
+        "Available From": available_from,
+        "Lease Length": lease_length,
+        "Type of Lease": type_of_lease,
+        "Contact Email": contact_email,
+        "Contact Phone": contact_phone,
+        "Amenities": amenities_json,
+        "Additional Notes": additional_notes,
+        "Photos": photos_json,
+    }
+
+    ins = listings.insert().values(**values)
+    with engine.begin() as conn:
+        result = conn.execute(ins)
+        return result.inserted_primary_key[0]
+
+
 def get_all_listings():
     """Fetch all listings as a list of dicts, parsing JSON fields."""
     sel = select(listings)
@@ -120,11 +163,9 @@ def get_all_listings():
     results = []
     for row in rows:
         record = dict(row)
-        # Parse JSON fields
         record["Rent Per Bedroom"] = json.loads(record.get("Rent Per Bedroom") or "{}")
         record["Amenities"] = json.loads(record.get("Amenities") or "[]")
-        record["Photos"]    = json.loads(record.get("Photos") or "[]")
-        # Additional Notes is plain text
+        record["Photos"] = json.loads(record.get("Photos") or "[]")
         results.append(record)
     return results
 
