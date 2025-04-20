@@ -19,10 +19,8 @@ from sqlalchemy import create_engine, MetaData
 
 engine = create_engine(
     st.secrets["DATABASE_URL"],
-    connect_args={
-        "sslmode": "require",
-        "hostaddr": st.secrets["PG_HOSTADDR"]}   # Hard-coded IPv4 addres
-    )
+    connect_args={"sslmode": "require"}   
+)
 meta = MetaData()
 meta.create_all(engine)
 
