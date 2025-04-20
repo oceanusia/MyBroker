@@ -15,7 +15,12 @@ from sqlalchemy.sql import select
 
 # --- Engine & Metadata ---
 import streamlit as st
-engine = create_engine(st.secrets["DATABASE_URL"])
+from sqlalchemy import create_engine, MetaData
+
+engine = create_engine(
+    st.secrets["DATABASE_URL"],
+    connect_args={"sslmode": "require"}    # ← ensure SSL for Supabase/Postgres
+)
 meta = MetaData()
 
 # --- Users Table ---
