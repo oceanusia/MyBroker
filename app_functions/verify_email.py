@@ -5,14 +5,12 @@ from email.mime.multipart import MIMEMultipart
 import streamlit as st
 import time
 import random
-from app_functions.navigate_page import navigate_to
 
 # -- Email Sending Helper --
 def send_verification_email(receiver_email: str, verification_code: int):
-    # Load SMTP settings from secrets
-    smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(st.secrets.get("SMTP_PORT", 587))
-    sender_email = st.secrets.get("SMTP_SENDER")
+    smtp_server   = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port     = int(st.secrets.get("SMTP_PORT", 587))
+    sender_email  = st.secrets.get("SMTP_SENDER")
     sender_password = st.secrets.get("SMTP_PASSWORD")
 
     if not sender_email or not sender_password:
@@ -35,11 +33,10 @@ def send_verification_email(receiver_email: str, verification_code: int):
     except Exception as e:
         st.error(f"Failed to send verification email: {e}")
 
-# -- Email Verification Page --
+# -- Verification Page --
 def verify_email():
     st.title("Verify Your University Email")
-    
-    # Input university email address
+
     email = st.text_input("University Email", key="input_email")
     if st.button("Send Verification Code"):
         if email.endswith("@yale.edu"):
@@ -50,11 +47,12 @@ def verify_email():
             with st.spinner("Sending verification code..."):
                 send_verification_email(email, code)
                 time.sleep(1)
-            st.success("Verification code sent! Check your inbox.")
+
+            st.success("Verification code sent!")
         else:
             st.error("Please use a valid @yale.edu email address.")
 
-    # Show code entry form once a code is generated
+    # Once a code is in state, show the form
     if 'verification_code' in st.session_state:
         st.markdown("---")
         st.subheader("Enter the 6‑digit code you received")
@@ -64,7 +62,9 @@ def verify_email():
             if submitted:
                 if code_input == str(st.session_state['verification_code']):
                     st.success("✅ Email verified!")
-                    # Navigate to account creation
-                    navigate_to("create_account")
+                    # Move on to account creation
+                    st.session_state.pop('verification_code')
+                    st.session_state['current_page'] = "create_account"
+                    st.rerun()
                 else:
                     st.error("❌ Invalid code. Please try again.")
