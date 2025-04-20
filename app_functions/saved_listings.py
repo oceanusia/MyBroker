@@ -1,65 +1,75 @@
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 import streamlit as st
-from db import get_user, get_all_listings, unsave_listing_for_user
+import time
+import random
+from app_functions.navigate_page import navigate_to
 
+# -- Email Sending Helper --
+def send_verification_email(receiver_email, verification_code):
+    smtp_server = st.secrets.get("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = st.secrets.get("SMTP_PORT", 587)
+    sender_email = st.secrets.get("SMTP_SENDER")
+    sender_password = st.secrets.get("SMTP_PASSWORD")
 
-def saved_listings():
-    st.title("Saved Listings")
-
-    # Ensure a user is logged in
-    email = st.session_state.get('verified_email')
-    if not email:
-        st.error("No user logged in.")
+    if not sender_email or not sender_password:
+        st.error("Email credentials not configured.")
         return
 
-    # Fetch user data and all listings
-    user = get_user(email)
-    saved_ids = user.get('saved_listings', [])
-    all_listings = get_all_listings()
+    try:
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = receiver_email
+        message["Subject"] = "Your Verification Code"
+        body = f"Your verification code is: {verification_code}"
+        message.attach(MIMEText(body, "plain"))
 
-    # Handle no saved listings
-    if not saved_ids:
-        st.info("You have no saved listings yet!")
-        return
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.sendmail(sender_email, receiver_email, message.as_string())
 
-    # Filter listings by saved IDs
-    saved = [l for l in all_listings if l['id'] in saved_ids]
-    if not saved:
-        st.info("You have no saved listings yet!")
-        return
+    except Exception as e:
+        st.error(f"Failed to send verification email: {e}")
 
-    # Display each saved listing
-    for listing in saved:
-        with st.expander(listing['Address']):
-            st.write(f"**City:** {listing['City']}")
-            st.write(f"**State:** {listing['State']}")
-            st.write(f"**Zip Code:** {listing['Zip Code']}")
-            st.write(f"**Unit:** {listing['Unit']}")
-            st.write(f"**Floor:** {listing['Floor']}")
-            st.write(f"**Bedrooms:** {listing['Bedrooms']}")
-            st.write(f"**Bathrooms:** {listing['Bathrooms']}")
-            st.write(f"**Available From:** {listing['Available From']}")
-            st.write(f"**Lease Length:** {listing['Lease Length']} months")
-            st.write(f"**Type of Lease:** {listing['Type of Lease']}")
-            st.write(f"**Contact Email:** {listing['Contact Email']}")
-            st.write(f"**Contact Phone:** {listing['Contact Phone']}")
-            st.write(f"**Amenities:** {', '.join(listing['Amenities']) if listing['Amenities'] else 'None'}")
+# -- Verification Page --
+def verify_email():
+    st.title("Verify Your University Email")
 
-            # Rent per bedroom
-            if listing['Rent Per Bedroom']:
-                st.write("**Rent Per Bedroom:**")
-                for bdrm, rent in listing['Rent Per Bedroom'].items():
-                    st.write(f"- {bdrm}: ${rent}")
+    # Input user email
+    email = st.text_input("University Email", key="input_email")
+    if st.button("Send Verification Code"):
+        if email.endswith("@yale.edu"):
+            code = random.randint(100000, 999999)
+            st.session_state['verification_code'] = code
+            st.session_state['verified_email'] = email
 
-            # Photos
-            if listing['Photos']:
-                st.write("**Photos:**")
-                for photo_url in listing['Photos']:
-                    st.image(photo_url, use_container_width=True)
-            else:
-                st.write("No photos uploaded.")
+            with st.spinner("Sending verification code..."):
+                send_verification_email(email, code)
+                time.sleep(1)
 
-            # Unsave button
-            if st.button("💔 Unsave Listing", key=f"unsave_{listing['id']}"):
-                unsave_listing_for_user(email, listing['id'])
-                st.success("Listing removed! Click to refresh.")
-                st.rerun()
+            st.success("Verification code sent!")
+        else:
+            st.error("Please use a valid university email address.")
+
+    # If code sent, show verification form
+    if st.session_state.get('verification_code') is not None:
+        st.markdown("---")
+        st.subheader("Enter the 6‑digit code you received")
+        with st.form("verify_form"):
+            code_input = st.text_input("Code", max_chars=6, key="input_code")
+            submitted = st.form_submit_button("Verify Code")
+            if submitted:
+                if code_input == str(st.session_state['verification_code']):
+                    st.session_state['show_continue'] = True
+                else:
+                    st.error("❌ Invalid code. Please try again.")
+
+        # After correct code, allow navigation
+        if st.session_state.get('show_continue'):
+            st.success("✅ Email verified! Click to continue.")
+            if st.button("Continue to Account Creation"):
+                st.session_state.pop('show_continue')
+                navigate_to("create_account")
