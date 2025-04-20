@@ -6,9 +6,18 @@ This is a simple Streamlit application that demonstrates the capabilities of the
 
 ```
 streamlit-app
-├── app.py
-├── requirements.txt
-└── README.md
+├── mybroker.py             # Root folder for Streamlit app
+├── app_functions/          # All page‑specific modules
+│   ├── __init__.py         # (optional) makes this a Python package
+│   ├── verify_email.py     # Email verification page logic
+│   ├── create_account.py   # Account creation page logic
+│   ├── login_page.py       # Login page logic
+│   ├── post_listing.py     # “Post a Listing” page
+│   ├── browse_listings.py  # “Browse Listings” page
+│   ├── saved_listings.py   # “Saved Listings” page
+│   ├── my_listings.py      # “My Listings” page
+│   ├── landing_page.py     # Landing (pre‑login) page
+│   └── logout.py           # Logout handler
 ```
 
 ## Installation
